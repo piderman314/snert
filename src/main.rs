@@ -12,6 +12,8 @@ use log4rs::config::Config;
 use log4rs::config::Root;
 use log4rs::encode::pattern::PatternEncoder;
 
+use cartridge::info;
+
 fn main() {
     setup_logging();
     let args: Vec<String> = env::args().collect();
@@ -23,6 +25,11 @@ fn main() {
 
     let rom_file = &args[1];
     info!("Using rom file {}", rom_file);
+
+    let cartridge = cartridge::from_rom_file(rom_file);
+    let info = info::from_cartridge(&cartridge);
+
+    info!("GAME TITLE {:?}", info.game_title);
 }
 
 fn setup_logging() {
