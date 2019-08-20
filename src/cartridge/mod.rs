@@ -4,26 +4,26 @@ use std::fs::File;
 use std::io::prelude::Read;
 use std::ops::Index;
 
-pub struct CartMemAddr(usize);
-pub struct CartMemAddrRange(usize, usize);
+pub struct CartAddr(usize);
+pub struct CartAddrRange(CartAddr, CartAddr);
 
 pub struct Cartridge {
     raw_data: Vec<u8>,
 }
 
-impl Index<CartMemAddr> for Cartridge {
+impl Index<CartAddr> for Cartridge {
     type Output = u8;
 
-    fn index(&self, addr: CartMemAddr) -> &u8 {
+    fn index(&self, addr: CartAddr) -> &u8 {
         &self.raw_data[addr.0]
     }
 }
 
-impl Index<CartMemAddrRange> for Cartridge {
+impl Index<CartAddrRange> for Cartridge {
     type Output = [u8];
 
-    fn index(&self, addr: CartMemAddrRange) -> &[u8] {
-        &self.raw_data[addr.0 .. addr.1]
+    fn index(&self, addr: CartAddrRange) -> &[u8] {
+        &self.raw_data[(addr.0).0..(addr.1).0]
     }
 }
 
