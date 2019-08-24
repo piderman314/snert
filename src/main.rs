@@ -1,4 +1,5 @@
 mod cartridge;
+mod mem;
 
 use std::env;
 use std::process;
@@ -30,6 +31,13 @@ fn main() {
     let info = info::from_cartridge(&cartridge);
 
     info!("GAME TITLE {:?}", info.game_title);
+
+    let memory = mem::Mem {
+        model: Box::new(mem::model::lomem::LoMem::new()),
+        cartridge,
+    };
+
+    info!("ACCESS {:02X}", memory[mem::MemAddr(0x00_8000)]);
 }
 
 fn setup_logging() {

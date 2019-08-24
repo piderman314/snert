@@ -4,8 +4,8 @@ use std::fs::File;
 use std::io::prelude::Read;
 use std::ops::Index;
 
-pub struct CartAddr(usize);
-pub struct CartAddrRange(CartAddr, CartAddr);
+pub struct CartAddr(pub usize);
+pub struct CartAddrRange(pub CartAddr, pub CartAddr);
 
 pub struct Cartridge {
     raw_data: Vec<u8>,
