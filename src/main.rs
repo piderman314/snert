@@ -1,8 +1,11 @@
 mod cartridge;
+mod cpu;
 mod mem;
 
 use std::env;
 use std::process;
+use std::thread;
+use std::time::Duration;
 
 use log::info;
 use log::LevelFilter;
@@ -14,6 +17,8 @@ use log4rs::config::Root;
 use log4rs::encode::pattern::PatternEncoder;
 
 use cartridge::info;
+
+use std::sync::{Arc, RwLock};
 
 fn main() {
     setup_logging();
@@ -27,17 +32,27 @@ fn main() {
     let rom_file = &args[1];
     info!("Using rom file {}", rom_file);
 
-    let cartridge = cartridge::from_rom_file(rom_file);
+    let cartridge = Arc::new(cartridge::from_rom_file(rom_file));
     let info = info::from_cartridge(&cartridge);
 
     info!("GAME TITLE {:?}", info.game_title);
 
-    let memory = mem::Mem {
+    let memory = Arc::new(RwLock::new(mem::Mem {
         model: Box::new(mem::model::lomem::LoMem::new()),
-        cartridge,
-    };
+        cartridge: cartridge.clone(),
+    }));
 
-    info!("ACCESS {:02X}", memory[mem::MemAddr(0x00_8000)]);
+    info!("ACCESS {:02X}", memory.read().unwrap()[mem::MemAddr(0x00_8000)]);
+
+    let c = Arc::new(RwLock::new(cpu::Cpu::new(memory.clone(), &info)));
+
+    let cpu_handle = cpu::start(c.clone());
+
+    thread::sleep(Duration::from_secs(5));
+
+    c.write().unwrap().stop = true;
+
+    cpu_handle.join().unwrap();
 }
 
 fn setup_logging() {

@@ -1,15 +1,17 @@
 pub mod model;
 
+use std::ops::Index;
+use std::sync::Arc;
+
 use crate::cartridge::{CartAddr, Cartridge};
 use model::{MemType, Model, RelativeAddr};
 
-use std::ops::Index;
-
+#[derive(Copy, Clone, Debug)]
 pub struct MemAddr(pub usize);
 
 pub struct Mem {
-    pub model: Box<Model>,
-    pub cartridge: Cartridge,
+    pub model: Box<Model + Send + Sync>,
+    pub cartridge: Arc<Cartridge>,
 }
 
 impl Index<MemAddr> for Mem {
