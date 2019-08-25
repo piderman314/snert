@@ -4,10 +4,8 @@ use std::ops::Index;
 use std::sync::Arc;
 
 use crate::cartridge::{CartAddr, Cartridge};
+use crate::util::MemAddr;
 use model::{MemType, Model, RelativeAddr};
-
-#[derive(Copy, Clone, Debug)]
-pub struct MemAddr(pub usize);
 
 pub struct Mem {
     pub model: Box<Model + Send + Sync>,
@@ -29,5 +27,15 @@ impl Mem {
         match mem_type {
             MemType::Cartridge => &self.cartridge[CartAddr(cart_addr)],
         }
+    }
+
+    pub fn read_addr(&self, addr_addr: MemAddr, size: usize) -> MemAddr {
+        let mut addr: usize = 0;
+
+        for i in 0..size {
+            addr += ((self[addr_addr + i]) as usize) << (8 * i);
+        }
+
+        MemAddr(addr)
     }
 }

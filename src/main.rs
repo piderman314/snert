@@ -1,11 +1,10 @@
 mod cartridge;
 mod cpu;
 mod mem;
+mod util;
 
 use std::env;
 use std::process;
-use std::thread;
-use std::time::Duration;
 
 use log::info;
 use log::LevelFilter;
@@ -42,15 +41,9 @@ fn main() {
         cartridge: cartridge.clone(),
     }));
 
-    info!("ACCESS {:02X}", memory.read().unwrap()[mem::MemAddr(0x00_8000)]);
-
     let c = Arc::new(RwLock::new(cpu::Cpu::new(memory.clone(), &info)));
 
     let cpu_handle = cpu::start(c.clone());
-
-    thread::sleep(Duration::from_secs(5));
-
-    c.write().unwrap().stop = true;
 
     cpu_handle.join().unwrap();
 }
@@ -64,7 +57,7 @@ fn setup_logging() {
 
     let config = Config::builder()
         .appender(Appender::builder().build("stdout", Box::new(stdout)))
-        .build(Root::builder().appender("stdout").build(LevelFilter::Debug))
+        .build(Root::builder().appender("stdout").build(LevelFilter::Trace))
         .unwrap();
     log4rs::init_config(config).unwrap();
 }

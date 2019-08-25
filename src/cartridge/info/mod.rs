@@ -1,6 +1,6 @@
 mod game_title;
 
-use crate::mem::MemAddr;
+use crate::util::MemAddr;
 use game_title::GameTitle;
 
 use crate::cartridge::{CartAddr, Cartridge};
