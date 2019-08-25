@@ -9,7 +9,7 @@ use crate::util::{InstrSize, MemAddr};
 use log::{trace, warn};
 
 const CARRY_STATUS_FLAG: u8 = 0b0000_0001;
-const ZERO__STATUS_FLAG: u8 = 0b0000_0010;
+const ZERO_STATUS_FLAG: u8 = 0b0000_0010;
 const IRQ_DISABLED_MODE_FLAG: u8 = 0b0000_0100;
 const DECIMAL_MODE_FLAG: u8 = 0b0000_1000;
 const PROGRAM_BREAK_INTERRUPT_FLAG: u8 = 0b0001_0000;
@@ -25,6 +25,7 @@ pub struct Cpu {
     emulation: bool,
 
     acc: u16,
+    dp: u16,
 
     pub stop: bool,
 }
@@ -37,6 +38,7 @@ impl Cpu {
             flags: IRQ_DISABLED_MODE_FLAG, // IRQ set, others not set
             emulation: true,
             acc: 0x0000,
+            dp: 0x0000,
             stop: false,
         }
     }
@@ -54,6 +56,14 @@ impl Cpu {
                 trace!("CLC");
                 self.clear_flag(CARRY_STATUS_FLAG);
                 self.trace_flags();
+                InstrSize(1)
+            }
+            0x5B => {
+                trace!("TCD");
+                self.dp = self.acc;
+
+                self.set_transfer_flags(self.dp, 2);
+
                 InstrSize(1)
             }
             0x78 => {
@@ -88,6 +98,8 @@ impl Cpu {
                 }
 
                 trace!("ACC {:04X}", self.acc);
+
+                self.set_transfer_flags(const_value, const_size as u16);
 
                 InstrSize(const_size + 1)
             }
@@ -137,6 +149,18 @@ impl Cpu {
 
     fn set_flag(&mut self, flag: u8) {
         self.flags |= flag;
+    }
+
+    fn set_transfer_flags(&mut self, transfer_value: u16, transfer_size: u16) {
+        if transfer_value & (0x0080 * (1 + transfer_size * 0x10)) != 0 {
+            self.set_flag(NEGATIVE_STATUS_FLAG);
+        }
+
+        if transfer_value == 0 {
+            self.set_flag(ZERO_STATUS_FLAG);
+        }
+
+        self.trace_flags();
     }
 
     fn clear_flag(&mut self, flag: u8) {
