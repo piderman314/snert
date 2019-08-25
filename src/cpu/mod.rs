@@ -36,7 +36,7 @@ impl Cpu {
             pc: cart_info.reset_vector,
             flags: IRQ_DISABLED_MODE_FLAG, // IRQ set, others not set
             emulation: true,
-            acc: 0,
+            acc: 0x0000,
             stop: false,
         }
     }
@@ -78,7 +78,17 @@ impl Cpu {
                 let const_size = if self.m() { 1 } else { 2 };
                 let const_value = self.mem_read_value(const_size);
                 trace!("LDA {:04X}", const_value);
-                self.acc = const_value;
+
+                if self.m() {
+                    // only set the low byte in 8-bit mode
+                    self.acc &= 0xFF00; // clear low byte
+                    self.acc |= const_value; // set low byte
+                } else {
+                    self.acc = const_value;
+                }
+
+                trace!("ACC {:04X}", self.acc);
+
                 InstrSize(const_size + 1)
             }
             0xC2 => {
@@ -122,7 +132,7 @@ impl Cpu {
             return true;
         }
 
-        self.flags & ACC_8BIT_MODE_FLAG != 0
+        self.is_flag_set(ACC_8BIT_MODE_FLAG)
     }
 
     fn set_flag(&mut self, flag: u8) {
