@@ -23,6 +23,8 @@ pub struct Cpu {
     flags: u8,
     emulation: bool,
 
+    acc: u16,
+
     pub stop: bool,
 }
 
@@ -33,6 +35,7 @@ impl Cpu {
             pc: cart_info.reset_vector,
             flags: IRQ_DISABLED_MODE_FLAG, // IRQ set, others not set
             emulation: true,
+            acc: 0,
             stop: false,
         }
     }
@@ -57,6 +60,13 @@ impl Cpu {
                 trace!("STZ {:?}", addr);
                 warn!("TODO Implement 0x9C STZ");
                 InstrSize(3)
+            }
+            0xA9 => {
+                let const_size = if self.m() { 1 } else { 2 };
+                let const_value = mem.read_value(self.pc + 1, const_size);
+                trace!("LDA {:04X}", const_value);
+                self.acc = const_value;
+                InstrSize(const_size + 1)
             }
             _ => {
                 panic!("Unknown instruction {:02X}", instr);

@@ -29,6 +29,16 @@ impl Mem {
         }
     }
 
+    pub fn read_value(&self, addr_addr: MemAddr, size: usize) -> u16 {
+        let mut value: u16 = 0;
+
+        for i in 0..size {
+            value += u16::from(self[addr_addr + i]) << (8 * i);
+        }
+
+        value
+    }
+
     pub fn read_addr(&self, addr_addr: MemAddr, size: usize) -> MemAddr {
         let mut addr: usize = 0;
 
