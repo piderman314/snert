@@ -12,6 +12,7 @@ const CARRY_STATUS_FLAG: u8 = 0b0000_0001;
 const ZERO__STATUS_FLAG: u8 = 0b0000_0010;
 const IRQ_DISABLED_MODE_FLAG: u8 = 0b0000_0100;
 const DECIMAL_MODE_FLAG: u8 = 0b0000_1000;
+const PROGRAM_BREAK_INTERRUPT_FLAG: u8 = 0b0001_0000;
 const INDEX_8BIT_MODE_FLAG: u8 = 0b0001_0000;
 const ACC_8BIT_MODE_FLAG: u8 = 0b0010_0000;
 const OVERFLOW_STATUS_FLAG: u8 = 0b0100_0000;
@@ -48,25 +49,67 @@ impl Cpu {
     }
 
     fn handle_instr(&mut self, instr: u8) -> InstrSize {
-        let mut mem = self.mem.write().unwrap();
         match instr {
-            0x78 => {
-                trace!("SEI");
-                self.flags &= IRQ_DISABLED_MODE_FLAG;
+            0x18 => {
+                trace!("CLC");
+                self.clear_flag(CARRY_STATUS_FLAG);
+                self.trace_flags();
                 InstrSize(1)
             }
+            0x78 => {
+                trace!("SEI");
+                self.set_flag(IRQ_DISABLED_MODE_FLAG);
+                self.trace_flags();
+                InstrSize(1)
+            }
+            0x8D => {
+                let addr = self.mem_read_addr(2);
+                trace!("STA {:?}", addr);
+                warn!("TODO Implement STA 0x8D");
+                InstrSize(3)
+            }
             0x9C => {
-                let addr = mem.read_addr(self.pc + 1, 2);
+                let addr = self.mem_read_addr(2);
                 trace!("STZ {:?}", addr);
-                warn!("TODO Implement 0x9C STZ");
+                warn!("TODO Implement STZ 0x9C");
                 InstrSize(3)
             }
             0xA9 => {
                 let const_size = if self.m() { 1 } else { 2 };
-                let const_value = mem.read_value(self.pc + 1, const_size);
+                let const_value = self.mem_read_value(const_size);
                 trace!("LDA {:04X}", const_value);
                 self.acc = const_value;
                 InstrSize(const_size + 1)
+            }
+            0xC2 => {
+                let bits_to_clear = self.mem_read_value(1);
+                trace!("REP {:08b}", bits_to_clear);
+                self.clear_flag(bits_to_clear as u8);
+                self.trace_flags();
+                InstrSize(2)
+            }
+            0xFB => {
+                trace!("XCE");
+                let new_emu_mode = self.is_flag_set(CARRY_STATUS_FLAG);
+
+                if self.emulation {
+                    self.set_flag(CARRY_STATUS_FLAG);
+                } else {
+                    self.clear_flag(CARRY_STATUS_FLAG);
+                }
+
+                self.emulation = new_emu_mode;
+
+                if self.emulation {
+                    self.clear_flag(PROGRAM_BREAK_INTERRUPT_FLAG);
+                } else {
+                    self.set_flag(ACC_8BIT_MODE_FLAG);
+                    self.set_flag(INDEX_8BIT_MODE_FLAG);
+                }
+
+                self.trace_flags();
+
+                InstrSize(1)
             }
             _ => {
                 panic!("Unknown instruction {:02X}", instr);
@@ -80,6 +123,30 @@ impl Cpu {
         }
 
         self.flags & ACC_8BIT_MODE_FLAG != 0
+    }
+
+    fn set_flag(&mut self, flag: u8) {
+        self.flags |= flag;
+    }
+
+    fn clear_flag(&mut self, flag: u8) {
+        self.flags &= 0xFF - flag;
+    }
+
+    fn is_flag_set(&self, flag: u8) -> bool {
+        self.flags & flag != 0
+    }
+
+    fn mem_read_value(&self, size: usize) -> u16 {
+        self.mem.read().unwrap().read_value(self.pc + 1, size)
+    }
+
+    fn mem_read_addr(&self, size: usize) -> MemAddr {
+        self.mem.read().unwrap().read_addr(self.pc + 1, size)
+    }
+
+    fn trace_flags(&self) {
+        trace!("FLAGS {:08b} EMULATION {}", self.flags, self.emulation);
     }
 }
 
